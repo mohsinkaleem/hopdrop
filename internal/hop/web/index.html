@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<title>HopDrop</title>
+<style>
+:root {
+  --bg: #f6f7f9; --card: #ffffff; --ink: #14171c; --muted: #6b7280; --line: #e3e6eb;
+  --accent: #2f6df6; --accent-ink: #ffffff; --accent-soft: #e8efff; --ok: #16a34a; --bad: #dc2626;
+  --radius: 14px; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115; --card: #171a21; --ink: #e8eaee; --muted: #9aa3b2; --line: #262b35;
+    --accent: #5b8cff; --accent-ink: #0b1020; --accent-soft: #1b2440; --ok: #34d399; --bad: #f87171;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; }
+body { padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom)); }
+main { max-width: 640px; margin: 0 auto; }
+header { display: flex; align-items: center; gap: 10px; padding: 16px 0 8px; }
+.logo { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.logo svg { width: 18px; height: 18px; }
+h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; }
+.me { margin-left: auto; text-align: right; font-size: 13px; color: var(--muted); min-width: 0; }
+.me b { color: var(--ink); font-weight: 600; }
+.me b.rename { cursor: pointer; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 5px; vertical-align: 1px; }
+.dot.on { background: var(--ok); }
+.sechead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 2px 8px; font-weight: 600; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+#devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.dev { position: relative; padding: 12px; cursor: pointer; user-select: none; transition: border-color .12s, background .12s; display: flex; gap: 10px; align-items: center; min-width: 0; }
+.dev .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
+.dev .ic svg { width: 19px; height: 19px; }
+.dev .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dev .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dev .txt { min-width: 0; }
+.dev.sel { border-color: var(--accent); background: var(--accent-soft); }
+.dev.sel::after { content: ""; position: absolute; top: 8px; right: 8px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; }
+.dev.off { opacity: .5; }
+.dev.drop { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.empty { color: var(--muted); padding: 16px; text-align: center; grid-column: 1 / -1; }
+.empty a { color: var(--accent); cursor: pointer; }
+
+#send { padding: 14px; display: grid; gap: 12px; }
+#zone { border: 2px dashed var(--line); border-radius: 12px; padding: 18px 12px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .12s, background .12s; }
+#zone.hot { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+#zone strong { color: var(--ink); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button, .btn { font: inherit; font-weight: 600; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px;
+  padding: 9px 14px; cursor: pointer; min-height: 40px; text-decoration: none; display: inline-flex; align-items: center; }
+button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button:disabled { opacity: .45; cursor: default; }
+button.small, .btn.small { padding: 5px 10px; min-height: 32px; font-size: 13px; }
+button.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+textarea { width: 100%; min-height: 76px; resize: vertical; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.hint { font-size: 12px; color: var(--muted); }
+.grow { margin-left: auto; }
+
+#jobs { display: grid; gap: 8px; margin-top: 10px; }
+.job { padding: 10px 12px; font-size: 13px; }
+.job .top { display: flex; align-items: center; gap: 8px; }
+.job .lb { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.job .st { color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.job button { min-height: 28px; padding: 3px 9px; font-size: 12px; }
+.bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 7px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+.job.done .bar i { background: var(--ok); }
+.job.err .bar i { background: var(--bad); }
+.job.err .st { color: var(--bad); }
+
+#inbox { display: grid; gap: 8px; }
+.item { padding: 12px; display: grid; gap: 8px; }
+.item .meta { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.item .body { word-break: break-word; white-space: pre-wrap; max-height: 240px; overflow: auto; }
+.item .file { font-weight: 600; word-break: break-all; }
+.item img { max-width: 100%; max-height: 260px; border-radius: 8px; display: block; background: var(--bg); }
+.item a { color: var(--accent); }
+.item.new { animation: pop .5s ease; }
+@keyframes pop { from { transform: scale(.98); background: var(--accent-soft); } to { transform: none; } }
+
+details.card { margin-top: 10px; }
+details.card > summary { padding: 12px 14px; cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary::after { content: "›"; color: var(--muted); transition: transform .15s; }
+details.card[open] > summary::after { transform: rotate(90deg); }
+.panel { padding: 0 14px 14px; display: grid; gap: 10px; }
+#qr { width: 180px; height: 180px; border-radius: 10px; background: #fff; padding: 6px; justify-self: center; }
+.urls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.urls button { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 500; font-size: 13px; }
+.urls button.on { border-color: var(--accent); background: var(--accent-soft); }
+
+footer { margin-top: 26px; font-size: 12px; color: var(--muted); text-align: center; }
+footer code { font-size: 12px; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg);
+  padding: 9px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15c3-7 13-7 16 0"/><path d="M17 11l3 4-4.5 1"/></svg></div>
+    <h1>HopDrop</h1>
+    <div class="me"><span id="conn" class="dot"></span><span id="meline">connecting…</span></div>
+  </header>
+
+  <div class="sechead">
+    <h2>Devices</h2>
+    <button id="addPeer" class="small ghost" title="For a device that isn’t found automatically">Add by IP…</button>
+  </div>
+  <div id="devices"><div class="empty card">Looking for devices…</div></div>
+
+  <h2>Send</h2>
+  <section id="send" class="card">
+    <div id="zone">
+      <strong>Drop files here</strong> or <span style="color:var(--accent)">choose</span>
+      <div class="hint" id="zonehint">They go to the selected devices</div>
+    </div>
+    <div class="row">
+      <button id="pickFiles">Files…</button>
+      <button id="pickFolder">Folder…</button>
+      <button id="sendClip" class="hidden">Send clipboard</button>
+    </div>
+    <textarea id="text" placeholder="Type or paste text, a link, or an image…"></textarea>
+    <div class="row">
+      <span class="hint" id="texthint">Ctrl + Enter to send</span>
+      <button id="sendText" class="primary grow">Send text</button>
+    </div>
+    <input id="fileInput" type="file" multiple class="hidden">
+    <input id="folderInput" type="file" webkitdirectory class="hidden">
+  </section>
+  <div id="jobs"></div>
+
+  <div class="sechead">
+    <h2 id="inboxTitle">Received</h2>
+    <button id="openDownloads" class="small ghost hidden">Open Downloads folder</button>
+  </div>
+  <div id="inbox"><div class="empty card">Nothing yet</div></div>
+
+  <details class="card" id="share">
+    <summary>Open on a phone</summary>
+    <div class="panel">
+      <span class="hint" style="text-align:center">Scan with the phone's camera, or type the address. Same Wi-Fi only.</span>
+      <img id="qr" alt="QR code for this page">
+      <div class="urls" id="urls"></div>
+    </div>
+  </details>
+
+  <footer id="foot"></footer>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const API = "/api";
+const IS_MAC = /Mac/.test(navigator.platform || navigator.userAgent);
+const MOBILE = /Android|iPhone|iPad/i.test(navigator.userAgent);
+const state = { local: false, me: null, host: null, peers: [], selected: new Set(JSON.parse(lsGet("hop.sel") || "[]")), inbox: [], unseen: 0 };
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+function fmtBytes(n) { const u = ["B","KB","MB","GB","TB"]; let i = 0; while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; } return (i ? n.toFixed(1) : n) + " " + u[i]; }
+function fmtSecs(s) { s = Math.round(s); return s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${Math.floor(s / 3600)} h ${Math.round(s % 3600 / 60)} min`; }
+function ago(t) { const s = Math.max(0, Date.now() / 1000 - t | 0); return s < 60 ? "just now" : s < 3600 ? (s / 60 | 0) + " min ago" : s < 86400 ? (s / 3600 | 0) + " h ago" : (s / 86400 | 0) + " d ago"; }
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2600); }
+function isUrl(t) { return /^https?:\/\/\S+$/.test(t.trim()); }
+function uid() { return [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
+async function getJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(r.statusText); return r.json(); }
+async function api(url, body, method = "POST") {
+  const r = await fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).error || m; } catch {} throw new Error(m); }
+  return r.status === 204 ? null : r.json();
+}
+
+const ICONS = {
+  mac: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></svg>',
+  pi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>',
+  web: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>',
+  linux: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M7 21h10M7 9l3 2-3 2M12 14h4"/></svg>',
+};
+const TYPE_LABEL = { mac: "Mac", pi: "Raspberry Pi", web: "Phone / browser", linux: "Linux", win: "Windows" };
+
+// ---------------------------------------------------------------- modes
+// Local: the page is open on the machine running HopDrop, so it *is* that device (shows what it received).
+// Web: a phone or another computer; the page is a peer of its own, relayed by the daemon that served it.
+const local = {
+  async init() {
+    state.me = state.host;
+    this.connect();
+    (await getJson(`${API}/inbox`)).forEach((it) => addInbox(it, false));
+    $("#inboxTitle").textContent = `Received on ${state.me.name}`;
+    $("#openDownloads").classList.remove("hidden");
+  },
+  connect() {
+    const es = new EventSource(`${API}/events`);
+    es.addEventListener("hello", () => { setConn(true); refreshPeers(); });
+    es.addEventListener("peers", () => refreshPeers());
+    es.addEventListener("inbox", (e) => { const it = JSON.parse(e.data); addInbox(it, true); arrived(it); });
+    es.onerror = () => setConn(false);
+  },
+  peers() { return getJson(`${API}/peers`); },
+  itemUrl(it, inline) { return `${API}/inbox/${it.id}${inline ? "?inline=1" : ""}`; },
+  dismiss(it) { return fetch(`${API}/inbox/${it.id}`, { method: "DELETE" }); },
+  async rename(name) {
+    state.host = state.me = await api(`${API}/info`, { name }, "PATCH");
+    $("#inboxTitle").textContent = `Received on ${name}`;
+  },
+};
+
+const web = {
+  async init() {
+    let id = lsGet("hop.id"); if (!id) { id = uid(); lsSet("hop.id", id); }
+    let name = lsGet("hop.name");
+    if (!name) { const ua = navigator.userAgent; name = /Android/i.test(ua) ? "Android phone" : /iPhone|iPad/i.test(ua) ? "iPhone" : "Browser"; lsSet("hop.name", name); }
+    state.me = { id, name, type: "web" };
+    this.connect();
+    (await getJson(`${API}/inbox?id=${id}`)).forEach((it) => addInbox(it, false)); // oldest first; addInbox prepends
+  },
+  connect() {
+    if (this.es) this.es.close();
+    const { id, name } = state.me;
+    const es = this.es = new EventSource(`${API}/events?id=${id}&name=${encodeURIComponent(name)}`);
+    es.addEventListener("hello", () => { setConn(true); refreshPeers(); });
+    es.addEventListener("peers", () => refreshPeers());
+    es.addEventListener("inbox", (e) => { const it = JSON.parse(e.data); addInbox(it, true); navigator.vibrate?.(60); arrived(it); });
+    es.onerror = () => setConn(false);
+  },
+  async peers() {
+    const list = await getJson(`${API}/peers`);
+    const host = { ...state.host, online: true };
+    return [host, ...list].filter((p) => p.id !== state.me.id);
+  },
+  itemUrl(it, inline) { return `${API}/inbox/${it.id}?id=${state.me.id}${inline ? "&inline=1" : ""}`; },
+  dismiss(it) { return fetch(`${API}/inbox/${it.id}?id=${state.me.id}`, { method: "DELETE" }); },
+  rename(name) { state.me.name = name; lsSet("hop.name", name); this.connect(); },
+};
+
+let mode = web;
+
+// ---------------------------------------------------------------- sending (same in both modes)
+// The page only talks to the daemon that served it, naming the device with ?to=; that daemon forwards
+// to other devices.
+function sender() { return { id: state.me.id, name: state.me.name, type: state.me.type }; }
+
+function xhrPut(url, blob, job, onProgress) {
+  return new Promise((resolve, reject) => {
+    const x = job.xhr = new XMLHttpRequest();
+    x.open("PUT", url);
+    x.upload.onprogress = (e) => onProgress(e.loaded);
+    x.onload = () => x.status < 300 ? resolve() : reject(new Error(safeErr(x.responseText) || x.statusText));
+    x.onerror = () => reject(new Error("network error"));
+    x.onabort = () => reject(new Error("cancelled"));
+    x.send(blob);
+  });
+}
+function safeErr(t) { try { return JSON.parse(t).error; } catch { return t; } }
+
+// Offer the files, then PUT each one from where the receiver says it already is (resume).
+async function uploadFiles(p, files, job) {
+  const to = `to=${encodeURIComponent(p.id)}`;
+  const meta = files.map((f) => ({ path: (f.webkitRelativePath || f.name).replace(/^\/+/, ""), size: f.size }));
+  const total = meta.reduce((a, f) => a + f.size, 0);
+  const offer = await api(`${API}/offer?${to}`, { from: sender(), files: meta });
+  job.cancelUrl = `${API}/offer/${offer.id}?${to}`;
+  let doneBytes = 0;
+  for (let i = 0; i < files.length; i++) {
+    if (job.cancelled) throw new Error("cancelled");
+    const off = offer.offsets[i] || 0;
+    job.file(meta[i].path, i, files.length);
+    await xhrPut(`${API}/offer/${offer.id}/${i}?${to}&offset=${off}`, files[i].slice(off), job,
+      (n) => job.progress(doneBytes + off + n, total));
+    doneBytes += files[i].size;
+  }
+}
+
+function sendTextTo(p, text) { return api(`${API}/text?to=${encodeURIComponent(p.id)}`, { from: sender(), text }); }
+
+// ---------------------------------------------------------------- devices
+function setConn(on) {
+  $("#conn").classList.toggle("on", on);
+  const m = state.me;
+  if (!m) return;
+  $("#meline").innerHTML = `<b class="rename" id="rename" title="Rename this device">${esc(m.name)}</b> · ` +
+    (state.local ? "this device" : `via ${esc(state.host?.name || "…")}`);
+  $("#rename").onclick = async () => {
+    const n = prompt("Name this device", m.name);
+    if (!n || !n.trim()) return;
+    try { await mode.rename(n.trim()); } catch (e) { return toast(e.message); }
+    setConn(state.local);
+  };
+  if (state.local) $("#foot").innerHTML = "Closing this tab doesn’t turn HopDrop off — <code>hop off</code> does.";
+  else $("#foot").textContent = `Connected to ${state.host?.name || "…"} · keep this tab open to receive`;
+}
+
+async function addPeer() {
+  const addr = prompt("IP address of the other device (it must be running HopDrop)", "192.168.1.");
+  if (!addr || !addr.trim()) return;
+  try { const p = await api(`${API}/peers`, { addr: addr.trim() }); toast(`Added ${p.name}`); refreshPeers(); }
+  catch (e) { toast(e.message); }
+}
+
+async function refreshPeers() {
+  try { state.peers = await mode.peers(); } catch { return; }
+  // Default selection: the only online device.
+  const online = state.peers.filter((p) => p.online);
+  [...state.selected].forEach((id) => { if (!state.peers.some((p) => p.id === id)) state.selected.delete(id); });
+  if (!state.selected.size && online.length === 1) state.selected.add(online[0].id);
+  renderPeers();
+}
+
+function renderPeers() {
+  const el = $("#devices");
+  if (!state.peers.length) {
+    el.innerHTML = '<div class="empty card">No other devices yet. Run <code>hop</code> on another computer, or <a id="showShare">open this page on a phone</a>.</div>';
+    $("#showShare").onclick = () => { $("#share").open = true; $("#share").scrollIntoView({ behavior: "smooth" }); };
+    return;
+  }
+  el.innerHTML = state.peers.map((p) => {
+    const via = p.via && (p.via === state.host.id ? state.host : state.peers.find((q) => q.id === p.via));
+    const sub = p.online ? (TYPE_LABEL[p.type] || p.type) + (p.via ? " · via " + (via ? via.name : "another device") : "") : "offline";
+    return `<div class="card dev ${state.selected.has(p.id) ? "sel" : ""} ${p.online ? "" : "off"}" data-id="${esc(p.id)}">
+      <div class="ic">${ICONS[p.type] || ICONS.linux}</div>
+      <div class="txt"><div class="nm">${esc(p.name)}</div><div class="sub">${esc(sub)}</div></div></div>`;
+  }).join("");
+  el.querySelectorAll(".dev").forEach((d) => d.onclick = () => {
+    const id = d.dataset.id;
+    state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
+    lsSet("hop.sel", JSON.stringify([...state.selected]));
+    renderPeers();
+  });
+  const n = state.selected.size;
+  $("#zonehint").textContent = n ? `To ${n === 1 ? state.peers.find((p) => state.selected.has(p.id))?.name : n + " devices"}` : "Select a device above, or drop onto one";
+}
+
+/// Online peers to send to: the given ids, or the selection.
+function targets(ids) {
+  ids = ids || [...state.selected];
+  const ps = state.peers.filter((p) => ids.includes(p.id));
+  if (!ps.length) { toast("Select a device first"); return null; }
+  const on = ps.filter((p) => p.online);
+  if (!on.length) { toast(ps.length === 1 ? `${ps[0].name} is offline` : "Selected devices are offline"); return null; }
+  return on;
+}
+
+// ---------------------------------------------------------------- jobs (progress, cancel, retry)
+function newJob(p, files) {
+  const el = document.createElement("div");
+  el.className = "card job";
+  el.innerHTML = `<div class="top"><span class="lb"></span><button class="act hidden"></button><button class="x ghost" title="Cancel">✕</button></div>
+    <div class="bar"><i></i></div><div class="st"></div>`;
+  $("#jobs").prepend(el);
+  const $$ = (s) => el.querySelector(s);
+  const total = files.reduce((a, f) => a + f.size, 0);
+  const label = `→ ${p.name}`;
+  const j = {
+    p, files, cancelled: false, xhr: null, cancelUrl: null,
+    reset() {
+      el.classList.remove("done", "err"); $$(".act").classList.add("hidden"); $$(".x").classList.remove("hidden");
+      $$(".lb").textContent = label; $$(".st").textContent = "starting…"; this.cancelled = false; this.t0 = null; this.rate = 0;
+    },
+    file(path, i, n) { $$(".lb").textContent = n > 1 ? `${label} · ${i + 1}/${n} · ${path}` : `${label} · ${path}`; },
+    progress(n, tot) {
+      $$(".bar i").style.width = (tot ? Math.min(100, n / tot * 100) : 100) + "%";
+      const now = performance.now();
+      if (!this.t0) { this.t0 = now; this.n0 = n; this.tl = now; this.nl = n; }
+      if (now - this.tl > 400) {
+        const r = (n - this.nl) / ((now - this.tl) / 1000);
+        this.rate = this.rate ? this.rate * 0.7 + r * 0.3 : r;
+        this.tl = now; this.nl = n;
+      }
+      const eta = this.rate > 0 ? ` · ${fmtBytes(this.rate)}/s · ${fmtSecs((tot - n) / this.rate)} left` : "";
+      $$(".st").textContent = `${fmtBytes(n)} of ${fmtBytes(tot)}${eta}`;
+    },
+    finish() {
+      const secs = this.t0 ? (performance.now() - this.t0) / 1000 : 0;
+      el.classList.add("done"); $$(".bar i").style.width = "100%"; $$(".x").classList.add("hidden"); $$(".lb").textContent = label;
+      $$(".st").textContent = `Sent ${files.length} file${files.length > 1 ? "s" : ""}, ${fmtBytes(total)}` + (secs > 1 ? ` in ${fmtSecs(secs)}` : "");
+      setTimeout(() => el.remove(), 6000);
+    },
+    fail(msg) {
+      el.classList.add("err"); $$(".x").classList.add("hidden");
+      $$(".st").textContent = msg === "cancelled" ? "Cancelled" : `Failed: ${msg}`;
+      const act = $$(".act"); act.textContent = msg === "cancelled" ? "Send again" : "Retry"; act.classList.remove("hidden");
+      // After a failure the receiver keeps what arrived, so Retry resumes where it stopped.
+      act.onclick = () => runJob(this);
+    },
+    async cancel() {
+      this.cancelled = true; this.xhr?.abort();
+      if (this.cancelUrl) fetch(this.cancelUrl, { method: "DELETE" }).catch(() => {});
+    },
+    dismiss() { el.remove(); },
+  };
+  $$(".x").onclick = () => j.cancel();
+  return j;
+}
+
+async function runJob(j) {
+  j.reset();
+  try { await uploadFiles(j.p, j.files, j); j.finish(); }
+  catch (e) { j.fail(j.cancelled ? "cancelled" : e.message); }
+}
+
+function sendFiles(files, ids) {
+  if (!files.length) return;
+  const peers = targets(ids); if (!peers) return;
+  peers.forEach((p) => runJob(newJob(p, files)));
+}
+
+async function sendTextValue(text) {
+  const peers = targets(); if (!peers) return false;
+  const res = await Promise.allSettled(peers.map((p) => sendTextTo(p, text)));
+  const bad = res.map((r, i) => [r, peers[i]]).filter(([r]) => r.status === "rejected");
+  if (bad.length) { toast(`${bad[0][1].name}: ${bad[0][0].reason.message || bad[0][0].reason}`); return false; }
+  toast(`${isUrl(text) ? "Link" : "Text"} sent to ${peers.map((p) => p.name).join(", ")}`);
+  return true;
+}
+
+async function sendText() {
+  const text = $("#text").value;
+  if (!text.trim()) return toast("Nothing to send");
+  if (await sendTextValue(text)) $("#text").value = "";
+}
+
+// A pasted image is just a file: clipboard-<date-time>.png.
+async function sendImageBlob(blob) {
+  if (!targets()) return;
+  const png = blob.type === "image/png" ? blob : await toPng(blob);
+  const d = new Date(), p2 = (n) => String(n).padStart(2, "0");
+  const name = `clipboard-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.png`;
+  sendFiles([new File([png], name, { type: "image/png" })]);
+}
+async function toPng(blob) {
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement("canvas"); c.width = bmp.width; c.height = bmp.height;
+  c.getContext("2d").drawImage(bmp, 0, 0);
+  return new Promise((ok) => c.toBlob(ok, "image/png"));
+}
+
+/// Send what is on this computer's clipboard (needs a secure context: localhost, or https).
+async function sendClipboard() {
+  try {
+    for (const item of await navigator.clipboard.read()) {
+      const img = item.types.find((t) => t.startsWith("image/"));
+      if (img) return sendImageBlob(await item.getType(img));
+    }
+    const text = await navigator.clipboard.readText();
+    if (!text) return toast("Clipboard is empty");
+    sendTextValue(text);
+  } catch (e) { toast("Can’t read the clipboard — paste with " + (IS_MAC ? "⌘V" : "Ctrl+V") + " instead"); }
+}
+
+// ---------------------------------------------------------------- inbox
+function arrived(it) {
+  const what = `${it.kind === "text" ? "Text" : it.kind === "url" ? "Link" : it.name || "File"} from ${it.from.name}`;
+  toast(what);
+  if (!document.hidden) return;
+  state.unseen++; document.title = `(${state.unseen}) HopDrop`;
+  if (window.Notification?.permission === "granted") {
+    const n = new Notification("HopDrop", { body: it.text ? `${what}: ${it.text.slice(0, 80)}` : what, tag: it.id });
+    n.onclick = () => { window.focus(); n.close(); };
+  }
+}
+// Ask once, on the first click, whether this page may show notifications while it is in the background.
+document.addEventListener("click", () => { if (window.Notification?.permission === "default") Notification.requestPermission(); }, { once: true });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { state.unseen = 0; document.title = "HopDrop"; } });
+
+function addInbox(it, fresh) {
+  if (state.inbox.some((x) => x.id === it.id)) return;
+  state.inbox.unshift(it);
+  const box = $("#inbox");
+  box.querySelector(".empty")?.remove();
+  const el = document.createElement("div");
+  el.className = "card item" + (fresh ? " new" : "");
+  let body = "", actions = "";
+  if (it.kind === "text" || it.kind === "url") {
+    body = it.kind === "url" ? `<div class="body"><a href="${esc(it.text)}" target="_blank" rel="noopener">${esc(it.text)}</a></div>` : `<div class="body">${esc(it.text)}</div>`;
+    actions = `<button class="small primary" data-a="copy">Copy</button>` + (it.kind === "url" ? `<button class="small" data-a="open">Open</button>` : "");
+  } else {
+    if (it.kind === "image") body = `<img src="${mode.itemUrl(it, true)}" alt="" loading="lazy">`;
+    body += `<div class="file">${esc(it.name || "file")} <span class="hint">${fmtBytes(it.size)}</span></div>`;
+    // Copying an image needs the async clipboard (secure context: the localhost page, or https).
+    if (it.kind === "image" && window.isSecureContext && window.ClipboardItem) actions += `<button class="small" data-a="copyimg">Copy</button>`;
+    if (state.local) {
+      actions = `<button class="small primary" data-a="reveal">${IS_MAC ? "Show in Finder" : "Show in folder"}</button>` + actions;
+      if (it.kind !== "files") actions += `<a class="btn small" href="${mode.itemUrl(it, true)}" target="_blank" rel="noopener">Open</a>`;
+    } else {
+      actions = `<a class="btn small primary" href="${mode.itemUrl(it, false)}" download="${esc(it.name || "file")}" data-a="saved">Save</a>` + actions;
+      if (it.kind === "image" || /\.(pdf|txt|md|mp4|mov|mp3)$/i.test(it.name || "")) actions += `<a class="btn small" href="${mode.itemUrl(it, true)}" target="_blank" rel="noopener">Open</a>`;
+    }
+  }
+  el.innerHTML = `<div class="meta"><span>From <b>${esc(it.from.name)}</b> · ${ago(it.at)}</span><span>${esc(it.kind)}</span></div>${body}
+    <div class="row">${actions}<button class="small ghost grow" data-a="dismiss">Dismiss</button></div>`;
+  el.querySelectorAll("[data-a]").forEach((b) => b.addEventListener("click", (ev) => itemAction(it, b.dataset.a, el, ev)));
+  box.prepend(el);
+}
+
+async function itemAction(it, a, el, ev) {
+  if (a === "copy") { (await copyText(it.text)) ? toast("Copied") : toast("Copy failed — long-press the text"); }
+  else if (a === "open") { window.open(it.text, "_blank", "noopener"); }
+  else if (a === "copyimg") {
+    try {
+      const blob = fetch(mode.itemUrl(it, true)).then((r) => r.blob()).then((b) => b.type === "image/png" ? b : toPng(b));
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      toast("Image copied");
+    } catch { toast("Couldn’t copy the image"); }
+  }
+  else if (a === "reveal") { const r = await fetch(`${API}/inbox/${it.id}/reveal`, { method: "POST" }); if (!r.ok) toast("File is gone (moved or deleted?)"); }
+  else if (a === "saved") { setTimeout(() => ev.target.textContent = "Saved ✓", 300); }
+  else if (a === "dismiss") {
+    try { await mode.dismiss(it); } catch {}
+    state.inbox = state.inbox.filter((x) => x.id !== it.id); el.remove();
+    if (!state.inbox.length) $("#inbox").innerHTML = '<div class="empty card">Nothing yet</div>';
+  }
+}
+
+async function copyText(text) {
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; } } catch {}
+  // http:// pages have no async clipboard API: fall back to a hidden textarea.
+  const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", "");
+  ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+  let ok = false; try { ok = document.execCommand("copy"); } catch {}
+  ta.remove(); return ok;
+}
+
+// ---------------------------------------------------------------- panels
+async function loadShare() {
+  let urls = [];
+  try { urls = (await getJson(`${API}/info`)).urls || []; } catch {}
+  // On a phone, the address it already used is the one to share.
+  if (!state.local) urls = [location.origin + "/", ...urls.filter((u) => u !== location.origin + "/")];
+  if (!urls.length) { $("#urls").innerHTML = '<span class="hint">No network address found</span>'; $("#qr").classList.add("hidden"); return; }
+  const show = (u) => {
+    $("#qr").src = `${API}/qr.svg?text=${encodeURIComponent(u)}`;
+    $("#urls").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.u === u));
+  };
+  $("#urls").innerHTML = urls.map((u) => `<button class="small" data-u="${esc(u)}">${esc(u.replace(/^http:\/\/|\/$/g, ""))}</button>`).join("");
+  $("#urls").querySelectorAll("button").forEach((b) => b.onclick = () => { show(b.dataset.u); copyText(b.dataset.u).then((ok) => ok && toast("Address copied")); });
+  show(urls[0]);
+}
+
+// ---------------------------------------------------------------- wiring
+$("#zone").onclick = () => $("#fileInput").click();
+$("#pickFiles").onclick = () => $("#fileInput").click();
+$("#pickFolder").onclick = () => $("#folderInput").click();
+if (MOBILE || !("webkitdirectory" in document.createElement("input"))) $("#pickFolder").classList.add("hidden");
+$("#fileInput").onchange = (e) => { sendFiles([...e.target.files]); e.target.value = ""; };
+$("#folderInput").onchange = (e) => { sendFiles([...e.target.files]); e.target.value = ""; };
+$("#sendText").onclick = sendText;
+$("#texthint").textContent = `${IS_MAC ? "⌘" : "Ctrl"} + Enter to send`;
+$("#text").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendText(); } });
+$("#sendClip").onclick = sendClipboard;
+$("#openDownloads").onclick = () => fetch(`${API}/downloads`, { method: "POST" });
+$("#addPeer").onclick = addPeer;
+$("#share").addEventListener("toggle", () => { if ($("#share").open) loadShare(); });
+
+// Drag & drop: onto a device card sends to that device only; anywhere else, to the selection.
+{
+  const zone = $("#zone");
+  const clear = () => { zone.classList.remove("hot"); document.querySelectorAll(".dev.drop").forEach((d) => d.classList.remove("drop")); };
+  ["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (e) => {
+    if (!e.dataTransfer?.types.includes("Files")) return;
+    e.preventDefault(); zone.classList.add("hot");
+    document.querySelectorAll(".dev.drop").forEach((d) => d.classList.remove("drop"));
+    e.target.closest?.(".dev")?.classList.add("drop");
+  }));
+  document.addEventListener("dragleave", (e) => { if (!e.relatedTarget) clear(); });
+  document.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const card = e.target.closest?.(".dev"); clear();
+    const fs = [...(e.dataTransfer?.files || [])];
+    if (fs.length) sendFiles(fs, card ? [card.dataset.id] : null);
+  });
+}
+
+// Paste: images and files are sent straight away; text lands in the box.
+document.addEventListener("paste", (e) => {
+  const items = [...(e.clipboardData?.items || [])];
+  const img = items.find((i) => i.kind === "file" && i.type.startsWith("image/"));
+  if (img) { e.preventDefault(); sendImageBlob(img.getAsFile()); return; }
+  const files = items.filter((i) => i.kind === "file").map((i) => i.getAsFile()).filter(Boolean);
+  if (files.length) { e.preventDefault(); sendFiles(files); return; }
+  if (document.activeElement !== $("#text")) {
+    const text = e.clipboardData?.getData("text/plain");
+    if (text) { e.preventDefault(); $("#text").value = text; $("#text").focus(); }
+  }
+});
+
+(async () => {
+  state.host = await getJson(`${API}/info`);
+  // `?web` forces phone mode on this machine (handy for testing).
+  state.local = !new URLSearchParams(location.search).has("web") && state.host.local === true;
+  mode = state.local ? local : web;
+  if (window.isSecureContext && navigator.clipboard?.read) $("#sendClip").classList.remove("hidden");
+  await mode.init();
+  if (!$("#conn").classList.contains("on")) setConn(false);
+  await refreshPeers();
+  setInterval(refreshPeers, 5000);
+})().catch((e) => { $("#meline").textContent = "Error: " + e.message; });
+</script>
+</body>
+</html>
