@@ -14,7 +14,17 @@ with a browser.
 
 ## Install
 
-Requires Go 1.24 or later.
+**Prebuilt binary:** download `hop` for your platform from the
+[latest release](https://github.com/mohsinkaleem/hopdrop/releases/latest), make it executable, and put it on
+your `PATH`:
+
+```bash
+chmod +x hop-darwin-arm64 && mv hop-darwin-arm64 /usr/local/bin/hop
+```
+
+On macOS, if Gatekeeper blocks the downloaded binary, run `xattr -d com.apple.quarantine /usr/local/bin/hop`.
+
+**From source** (Go 1.24 or later):
 
 ```bash
 git clone https://github.com/mohsinkaleem/hopdrop.git
@@ -103,3 +113,7 @@ go build ./cmd/hop
 ```
 
 See [DESIGN.md](DESIGN.md) for the architecture, routing, HTTP API and discovery protocol.
+
+## License
+
+[MIT](LICENSE)
